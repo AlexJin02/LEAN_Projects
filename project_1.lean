@@ -3,7 +3,6 @@ This project aims to investigate the contintuity and  the uniform conintuity
 of the function `f(x) = x^2` using `ε-δ` definitions.
 -/
 
-import Mathlib.Data.Real.Basic
 import Mathlib.Tactic
 
 /--
@@ -30,7 +29,7 @@ def sq_fun (x : ℝ) : ℝ := x^2
 A lemma that simplifies the sq_fun.
 -/
 lemma abs_sq_fun (x y : ℝ) : |sq_fun x - sq_fun y| = |x - y| * |x + y| := by
-  dsimp [sq_fun]
+  simp [sq_fun]
   rw[← abs_mul]
   ring_nf
 
@@ -38,16 +37,18 @@ lemma abs_sq_fun (x y : ℝ) : |sq_fun x - sq_fun y| = |x - y| * |x + y| := by
 Triangle inequality for bounding the `|x + y|` part.
 -/
 theorem my_tri_ineq (x y : ℝ) : |x + y| ≤ |x| + |y| := by
-  --The theorem `abs_le` says: |a| ≤ b ↔ -b ≤ a ∧ a ≤ b.
-  --mpr makes sure we go from right to left.
-  apply abs_le.mpr
-  constructor
-  · have h1: -|x| ≤ x := neg_abs_le x
-    have h2: -|y| ≤ y := neg_abs_le y
-    linarith
-  · have h3: x ≤ |x| := le_abs_self x
-    have h4: y ≤ |y| := le_abs_self y
-    linarith
+  -- Here I tried to prove the triangle inequality mannually using the following tactics:
+  -- apply abs_le.mpr
+  --constructor
+  -- · have h1: -|x| ≤ x := neg_abs_le x
+  --  have h2: -|y| ≤ y := neg_abs_le y
+  --  linarith
+  -- · have h3: x ≤ |x| := le_abs_self x
+  --  have h4: y ≤ |y| := le_abs_self y
+  --  linarith
+  -- It works fine but quite lengthy。
+  -- So I googled how to prove it and it turns out I can just call the built-in tactic.
+  exact abs_add x y
 
 /--
 Then we start to prove the continuity of `f(x)=x^2` on the whole real line.
@@ -94,9 +95,10 @@ theorem sq_fun_continuous (x₀ : ℝ) : my_continuous_at sq_fun x₀ := by
 
     calc |X - x₀| * |X + x₀|
       -- a < b and c < d → ac < bd
+      -- Here I tried to apply mul_lt_mul but cannot figure out the right tactic
+      -- So I asked ChatGPT and it provided me with a new tactic mul_lt_mul''.
       _ < (ε / c) * c := by
         apply mul_lt_mul'' h_le_eps_c h_upper_bound (abs_nonneg _) (abs_nonneg _)
-      -- I tried to use inv_mul_cancel but didn't work ask gpt
       _ = ε := by simp[div_eq_mul_inv, mul_assoc, hc_pos.ne']
 
 /--
@@ -140,7 +142,8 @@ theorem sq_fun_not_uniform_on_r : ¬ (my_uniformly_continuous sq_fun) := by
       calc δ / 2 * (2 / δ + δ / 2)
         _ = (δ / 2) * (2 / δ) + (δ / 2) * (δ / 2) := by rw [mul_add]
         _ = 1 + δ^2 / 4 := by
-        -- Thanks to gpt
+        -- I tried to use simp to simplify the expression. However, it became more and more goals to prove.
+        -- So I asked ChatGPT and learned the new tactic field_simp here.
           field_simp [hδ.ne']
           ring
         _ ≥ 1 := by
@@ -160,9 +163,7 @@ theorem sq_fun_uniform_on_01 :
   constructor
   · linarith
   · intro x y hx hy h
-    -- rewrite the function using the first lemma
     rw [abs_sq_fun]
-    -- bound the absolute value using my triangle inequality
     have h_bound_fun : |x + y| ≤ 2 := by
       obtain ⟨x_lower, x_upper⟩ := hx
       obtain ⟨y_lower, y_upper⟩ := hy
@@ -171,14 +172,11 @@ theorem sq_fun_uniform_on_01 :
       rw [abs_of_nonneg y_lower]
       linarith
 
-    -- We want to prove `|x - y| * |x + y| < ε`.
-    -- Go via the intermediate value `|x - y| * 2`.
     apply lt_of_le_of_lt (b := |x - y| * 2)
     · apply mul_le_mul_of_nonneg_left
       · exact h_bound_fun
       · exact abs_nonneg (x - y)
 
-    -- Prove |x - y| * 2 < ε
     -- Use the same technique in section02 Sheet06
     exact (lt_div_iff₀ two_pos).mp h
 
