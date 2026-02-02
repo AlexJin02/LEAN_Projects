@@ -1,5 +1,5 @@
 /-
-This project aims to investigate the contintuity and  the uniform conintuity
+This project aims to investigate the contintuity and the uniform conintuity
 of the function `f(x) = x^2` using `ε-δ` definitions.
 -/
 
@@ -48,7 +48,7 @@ theorem my_tri_ineq (x y : ℝ) : |x + y| ≤ |x| + |y| := by
   --  linarith
   -- It works fine but quite lengthy。
   -- So I googled how to prove it and it turns out I can just call the built-in tactic.
-  exact abs_add x y
+  exact abs_add_le x y
 
 /--
 Then we start to prove the continuity of `f(x)=x^2` on the whole real line.
@@ -60,10 +60,7 @@ theorem sq_fun_continuous (x₀ : ℝ) : my_continuous_at sq_fun x₀ := by
   -- `+1` ensures c > 0
   let c := 2 * |x₀| + 1
   have hc_pos : c > 0 := by
-    simp [c]
-    have h0 : 0 ≤ 2 * |x₀| := by
-      exact mul_nonneg (by norm_num) (abs_nonneg x₀)
-    exact add_pos_of_nonneg_of_pos h0 (by norm_num)
+    positivity
 
   -- Choose `δ = min(1, ε / (2 * |x₀| + 1))`
   use min 1 (ε / c)
@@ -76,8 +73,7 @@ theorem sq_fun_continuous (x₀ : ℝ) : my_continuous_at sq_fun x₀ := by
     rw[abs_sq_fun]
     -- Prove `|x - x₀| < 1`
     have h_le_1 : |X - x₀| < 1:= by
-      apply lt_of_lt_of_le hX
-      exact min_le_left 1 (ε / c)
+      grind
 
     -- Prove `|x - x₀| < ε / c`
     have h_le_eps_c : |X - x₀| < ε / c := by
@@ -99,7 +95,7 @@ theorem sq_fun_continuous (x₀ : ℝ) : my_continuous_at sq_fun x₀ := by
       -- So I asked ChatGPT and it provided me with a new tactic mul_lt_mul''.
       _ < (ε / c) * c := by
         apply mul_lt_mul'' h_le_eps_c h_upper_bound (abs_nonneg _) (abs_nonneg _)
-      _ = ε := by simp[div_eq_mul_inv, mul_assoc, hc_pos.ne']
+      _ = ε := by simp [div_eq_mul_inv, hc_pos.ne']
 
 /--
 However, the function `f(x) = x^2` is not uniformly continuous on the whole real line.
